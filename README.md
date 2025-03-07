@@ -67,3 +67,4 @@ torii --world <WORLD_ADDRESS> --http.cors_origins "*"
 
 Happy coding!
 # blockheroeslatest
+# blockheroeslatest
