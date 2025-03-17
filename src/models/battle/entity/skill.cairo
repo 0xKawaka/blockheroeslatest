@@ -10,7 +10,7 @@ use game::models::battle::entity::{Entity, EntityTrait};
 use game::models::battle::{Battle, BattleImpl};
 use game::models::events::{IdAndValue, SkillEventParams};
 
-use alexandria_data_structures::vec::{VecTrait};
+use game::utils::vec::VecTrait;
 use game::utils::random::rand32;
 
 use core::array::ArrayTrait;

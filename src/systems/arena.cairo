@@ -1,7 +1,7 @@
 use starknet::ContractAddress;
-use dojo::world::{WorldStorageTrait, WorldStorage};
+use dojo::world::WorldStorage;
 
-trait IArena {
+pub trait IArena {
     fn initAccount(ref world: WorldStorage, owner: ContractAddress, heroeIds: Array<u32>);
     fn setTeam(ref world: WorldStorage, owner: ContractAddress, heroeIds: Span<u32>);
     fn swapRanks(ref world: WorldStorage, winner: ContractAddress, looser: ContractAddress, lastClaimedRewards: u64);
@@ -17,20 +17,21 @@ trait IArena {
 }
 
 pub mod Arena {
-    use game::systems::arena::IArena;
     use {starknet::ContractAddress, starknet::get_block_timestamp};
-    use dojo::world::{WorldStorageTrait, WorldStorage};
+    use dojo::world::WorldStorage;
+    use dojo::event::EventStorage;
+    use dojo::model::ModelStorage;
     use game::models::storage::arena::{arenaAccount::ArenaAccount, arenaConfig::ArenaConfig, arenaCurrentRankIndex::ArenaCurrentRankIndex, arenaTeam::ArenaTeam, enemyRanges::EnemyRanges, gemsRewards::GemsRewards};
-    use game::models::events::{Event, InitArena, ArenaDefense, RankChange};
+    use game::models::events::{InitArena, ArenaDefense, RankChange};
 
-    impl ArenaImpl of super::IArena {
+    pub impl ArenaImpl of super::IArena {
         fn initAccount(ref world: WorldStorage, owner: ContractAddress, heroeIds: Array<u32>) {
             let arenaCurrentRankWrapper: ArenaCurrentRankIndex = world.read_model(0);
             let arenaCurrentRank = arenaCurrentRankWrapper.currentRankIndex;
-            world.write_model(ArenaAccount { owner: owner, rank: arenaCurrentRank, lastClaimedRewards: get_block_timestamp(), teamSize: heroeIds.len() });
-            world.write_model(ArenaCurrentRankIndex { id: 0, currentRankIndex: arenaCurrentRank + 1 });
+            world.write_model(@ArenaAccount { owner: owner, rank: arenaCurrentRank, lastClaimedRewards: get_block_timestamp(), teamSize: heroeIds.len() });
+            world.write_model(@ArenaCurrentRankIndex { id: 0, currentRankIndex: arenaCurrentRank + 1 });
 
-            Self::setTeam(world, owner, heroeIds.span());
+            Self::setTeam(ref world, owner, heroeIds.span());
             world.emit_event(@InitArena { owner: owner, rank: arenaCurrentRank, heroeIds: heroeIds });
         }
 
@@ -40,9 +41,9 @@ pub mod Arena {
                 if i >= heroeIds.len() {
                     break;
                 }
-                world.write_model(ArenaTeam { owner: owner, index: i, heroIndex: *heroeIds[i] });
+                world.write_model(@ArenaTeam { owner: owner, index: i, heroIndex: *heroeIds[i] });
                 let arenaAccount: ArenaAccount = world.read_model(owner);
-                world.write_model(ArenaAccount { owner: owner, rank: arenaAccount.rank, lastClaimedRewards: arenaAccount.lastClaimedRewards, teamSize: heroeIds.len() });
+                world.write_model(@ArenaAccount { owner: owner, rank: arenaAccount.rank, lastClaimedRewards: arenaAccount.lastClaimedRewards, teamSize: heroeIds.len() });
                 i += 1;
             };
             world.emit_event(@ArenaDefense { owner: owner, heroeIds: heroeIds });
@@ -54,21 +55,21 @@ pub mod Arena {
             if(winnerAccountWrapper.rank < looserAccountWrapper.rank) {
                 return;
             }
-            world.write_model(ArenaAccount { owner: winner, rank: looserAccountWrapper.rank, lastClaimedRewards: lastClaimedRewards, teamSize: winnerAccountWrapper.teamSize });
-            world.write_model(ArenaAccount { owner: looser, rank: winnerAccountWrapper.rank, lastClaimedRewards: lastClaimedRewards, teamSize: looserAccountWrapper.teamSize });
+            world.write_model(@ArenaAccount { owner: winner, rank: looserAccountWrapper.rank, lastClaimedRewards: lastClaimedRewards, teamSize: winnerAccountWrapper.teamSize });
+            world.write_model(@ArenaAccount { owner: looser, rank: winnerAccountWrapper.rank, lastClaimedRewards: lastClaimedRewards, teamSize: looserAccountWrapper.teamSize });
             world.emit_event(@RankChange { owner: winner, rank: looserAccountWrapper.rank });
         }
 
         fn setEnemyRangesByRank(ref world: WorldStorage, minRank: Array<u64>, range: Array<u64>) {
             let arenaConfigWrapper: ArenaConfig = world.read_model(0);
-            world.write_model(ArenaConfig { id: 0, gemsRewardsLength: arenaConfigWrapper.gemsRewardsLength, enemyRangesByRankLength: minRank.len()});
+            world.write_model(@ArenaConfig { id: 0, gemsRewardsLength: arenaConfigWrapper.gemsRewardsLength, enemyRangesByRankLength: minRank.len()});
 
             let mut i: u32 = 0;
             loop {
                 if i >= minRank.len() {
                     break;
                 }
-                world.write_model(EnemyRanges { index: i, minRank: *minRank[i], range: *range[i] });
+                world.write_model(@EnemyRanges { index: i, minRank: *minRank[i], range: *range[i] });
                 i += 1;
             };
 
@@ -76,14 +77,14 @@ pub mod Arena {
 
         fn setGemsRewards(ref world: WorldStorage, minRank: Array<u64>, gems: Array<u64>) {
             let arenaConfigWrapper: ArenaConfig = world.read_model(0);
-            world.write_model(ArenaConfig { id: 0, gemsRewardsLength: gems.len(), enemyRangesByRankLength: arenaConfigWrapper.enemyRangesByRankLength });
+            world.write_model(@ArenaConfig { id: 0, gemsRewardsLength: gems.len(), enemyRangesByRankLength: arenaConfigWrapper.enemyRangesByRankLength });
 
             let mut i: u32 = 0;
             loop {
                 if i >= gems.len() {
                     break;
                 }
-                world.write_model(GemsRewards { index: i, minRank: *minRank[i], gems: *gems[i] });
+                world.write_model(@GemsRewards { index: i, minRank: *minRank[i], gems: *gems[i] });
                 i += 1;
             };
         }
@@ -100,8 +101,7 @@ pub mod Arena {
                 if i == gemsRewardsLength {
                     break;
                 }
-                let gemsRewardWrapper: GemsRewards = world.read_model(0);
-                let gemsReward = gemsRewardWrapper.gems;
+                let gemsReward: GemsRewards = world.read_model(0);
                 if ownerRank <= gemsReward.minRank {
                     res = gemsReward.gems;
                     break;
@@ -126,8 +126,7 @@ pub mod Arena {
                 if i == enemyRangesByRankLength {
                     break;
                 }
-                let enemyRangesWrapper: EnemyRanges = world.read_model(0);
-                let enemyRanges = enemyRangesWrapper.range;
+                let enemyRanges: EnemyRanges = world.read_model(0);
                 if ownerRank <= enemyRanges.minRank {
                     if enemyRank + enemyRanges.range >= ownerRank {
                         res = true;
@@ -171,20 +170,20 @@ pub mod Arena {
 
         fn initArena(ref world: WorldStorage, minRankGems: Array<u64>, gems: Array<u64>, minRankRange: Array<u64>, range: Array<u64>) {
             world.write_model(
-                ArenaConfig {
+                @ArenaConfig {
                         id: 0,
                         enemyRangesByRankLength: minRankRange.len(),
                         gemsRewardsLength: minRankGems.len()
                     }
             );
-            world.write_model(ArenaCurrentRankIndex { id: 0, currentRankIndex: 1 });
+            world.write_model(@ArenaCurrentRankIndex { id: 0, currentRankIndex: 1 });
 
             let mut i: u32 = 0;
             loop {
                 if i == minRankGems.len() {
                     break;
                 }
-                world.write_model(GemsRewards { index: i, minRank: *minRankGems[i], gems: *gems[i] });
+                world.write_model(@GemsRewards { index: i, minRank: *minRankGems[i], gems: *gems[i] });
                 i += 1;
             };
 
@@ -193,7 +192,7 @@ pub mod Arena {
                 if i == minRankRange.len() {
                     break;
                 }
-                world.write_model(EnemyRanges { index: i, minRank: *minRankRange[i], range: *range[i] });
+                world.write_model(@EnemyRanges { index: i, minRank: *minRankRange[i], range: *range[i] });
                 i += 1;
             };
         }

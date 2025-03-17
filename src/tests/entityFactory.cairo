@@ -29,24 +29,24 @@
 //         let caller = starknet::contract_address_const::<0x0>();
 //         let world = setup_world();
 
-//         EntityFactoryImpl::initBaseHeroesDict(world);
-//         EntityFactoryImpl::initRunesTable(world);
-//         EntityFactoryImpl::initBonusRunesTable(world);
+//         EntityFactoryImpl::initBaseHeroesDict(ref world);
+//         EntityFactoryImpl::initRunesTable(ref world);
+//         EntityFactoryImpl::initBonusRunesTable(ref world);
 
 //         let testrunes = array![rune::newDeterministic(0, RuneStatistic::Attack, false, RuneRarity::Common, RuneType::First)];
-//         let runeBonuses = EntityFactoryImpl::computeRunesBonuses(world, testrunes, statistics::new(0, 0, 0, 0, 0, 0));
+//         let runeBonuses = EntityFactoryImpl::computeRunesBonuses(ref world, testrunes, statistics::new(0, 0, 0, 0, 0, 0));
 //         assert(runeBonuses.attack == 30, 'runeBonuses.attack == 30');
 //         assert(runeBonuses.defense == 0, 'runeBonuses.defense == 0');
 
-//         AccountsImpl::createAccount(world, 'testname', caller);
-//         AccountsImpl::mintHero(world, caller);
-//         AccountsImpl::mintHero(world, caller);
-//         AccountsImpl::mintHero(world, caller);
-//         let hero0 = AccountsImpl::getHero(world, caller, 0);
-//         let hero1 = AccountsImpl::getHero(world, caller, 1);
-//         let hero2 = AccountsImpl::getHero(world, caller, 2);
+//         AccountsImpl::createAccount(ref world, 'testname', caller);
+//         AccountsImpl::mintHero(ref world, caller);
+//         AccountsImpl::mintHero(ref world, caller);
+//         AccountsImpl::mintHero(ref world, caller);
+//         let hero0 = AccountsImpl::getHero(ref world, caller, 0);
+//         let hero1 = AccountsImpl::getHero(ref world, caller, 1);
+//         let hero2 = AccountsImpl::getHero(ref world, caller, 2);
 
-//         let entities: Array<Entity> = EntityFactoryImpl::newEntities(world, caller, 0, array![hero0, hero1, hero2], AllyOrEnemy::Ally);
+//         let entities: Array<Entity> = EntityFactoryImpl::newEntities(ref world, caller, 0, array![hero0, hero1, hero2], AllyOrEnemy::Ally);
 //         println!("entity1 maxhealth: {}", entities[1].getMaxHealth());
 //         println!("entity2 maxhealth: {}", entities[2].getMaxHealth());
 //     }

@@ -1,5 +1,5 @@
 use core::array::ArrayTrait;
-use alexandria_data_structures::vec::{VecTrait};
+use game::utils::vec::VecTrait;
 
 use game::models::battle::{Battle, BattleTrait};
 use game::models::battle::entity::{Entity, EntityImpl, EntityTrait};

@@ -1,8 +1,8 @@
 {
   "world": {
-    "class_hash": "0x45575a88cc5cef1e444c77ce60b7b4c9e73a01cbbe20926d5a4c72a94011410",
-    "address": "0x525177c8afe8680d7ad1da30ca183e482cfcd6404c1e09d83fd3fa2994fd4b8",
-    "seed": "dojo_starter",
+    "class_hash": "0x7c9469d45a9cdbab775035afb48e1fa73fb35ab059fcb9dfb0a301aa973e783",
+    "address": "0x2c3ad3cc69e70489c382820f5bd36a54c870742d28341e41f5f04501b36d3e0",
+    "seed": "game",
     "name": "Dojo starter",
     "entrypoints": [
       "uuid",
@@ -11,6 +11,7 @@
       "register_event",
       "register_model",
       "register_contract",
+      "register_library",
       "init_contract",
       "upgrade_event",
       "upgrade_model",
@@ -78,6 +79,10 @@
           {
             "name": "Unregistered",
             "type": "()"
+          },
+          {
+            "name": "Library",
+            "type": "(core::starknet::class_hash::ClassHash, core::felt252)"
           }
         ]
       },
@@ -358,6 +363,34 @@
             "outputs": [
               {
                 "type": "core::starknet::contract_address::ContractAddress"
+              }
+            ],
+            "state_mutability": "external"
+          },
+          {
+            "type": "function",
+            "name": "register_library",
+            "inputs": [
+              {
+                "name": "namespace",
+                "type": "core::byte_array::ByteArray"
+              },
+              {
+                "name": "class_hash",
+                "type": "core::starknet::class_hash::ClassHash"
+              },
+              {
+                "name": "name",
+                "type": "core::byte_array::ByteArray"
+              },
+              {
+                "name": "version",
+                "type": "core::byte_array::ByteArray"
+              }
+            ],
+            "outputs": [
+              {
+                "type": "core::starknet::class_hash::ClassHash"
               }
             ],
             "state_mutability": "external"
@@ -967,6 +1000,28 @@
       },
       {
         "type": "event",
+        "name": "dojo::world::world_contract::world::LibraryRegistered",
+        "kind": "struct",
+        "members": [
+          {
+            "name": "name",
+            "type": "core::byte_array::ByteArray",
+            "kind": "key"
+          },
+          {
+            "name": "namespace",
+            "type": "core::byte_array::ByteArray",
+            "kind": "key"
+          },
+          {
+            "name": "class_hash",
+            "type": "core::starknet::class_hash::ClassHash",
+            "kind": "data"
+          }
+        ]
+      },
+      {
+        "type": "event",
         "name": "dojo::world::world_contract::world::EventEmitted",
         "kind": "struct",
         "members": [
@@ -1207,6 +1262,11 @@
             "kind": "nested"
           },
           {
+            "name": "LibraryRegistered",
+            "type": "dojo::world::world_contract::world::LibraryRegistered",
+            "kind": "nested"
+          },
+          {
             "name": "EventEmitted",
             "type": "dojo::world::world_contract::world::EventEmitted",
             "kind": "nested"
@@ -1252,12 +1312,12 @@
   },
   "contracts": [
     {
-      "address": "0x73a20bf1f5ebe9caf16bc08fb07434618300a55a764395a22f4fdde8237a547",
-      "class_hash": "0x6cbb5ab40ad7b48dff70edeacc4902a9eeae63a9e36456f9f908aedb904fbd2",
+      "address": "0x128a1000b9e44e705ee2546081b99bbaa75f6568a1d459e5358ef1a7b1dbee8",
+      "class_hash": "0x36b4b2410f5f66b92e50d234665233a12da824b81a11e59502b208cb399aacd",
       "abi": [
         {
           "type": "impl",
-          "name": "actions__ContractImpl",
+          "name": "Game__ContractImpl",
           "interface_name": "dojo::contract::interface::IContract"
         },
         {
@@ -1267,7 +1327,7 @@
         },
         {
           "type": "impl",
-          "name": "actions__DeployedContractImpl",
+          "name": "Game__DeployedContractImpl",
           "interface_name": "dojo::meta::interface::IDeployedResource"
         },
         {
@@ -1307,49 +1367,186 @@
         },
         {
           "type": "impl",
-          "name": "ActionsImpl",
-          "interface_name": "dojo_starter::systems::actions::IActions"
-        },
-        {
-          "type": "enum",
-          "name": "dojo_starter::models::Direction",
-          "variants": [
-            {
-              "name": "Left",
-              "type": "()"
-            },
-            {
-              "name": "Right",
-              "type": "()"
-            },
-            {
-              "name": "Up",
-              "type": "()"
-            },
-            {
-              "name": "Down",
-              "type": "()"
-            }
-          ]
+          "name": "GameImpl",
+          "interface_name": "game::systems::game::IGame"
         },
         {
           "type": "interface",
-          "name": "dojo_starter::systems::actions::IActions",
+          "name": "game::systems::game::IGame",
           "items": [
             {
               "type": "function",
-              "name": "spawn",
+              "name": "startPvpBattle",
+              "inputs": [
+                {
+                  "name": "enemyOwner",
+                  "type": "core::starknet::contract_address::ContractAddress"
+                },
+                {
+                  "name": "heroesIds",
+                  "type": "core::array::Array::<core::integer::u32>"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "playArenaTurn",
+              "inputs": [
+                {
+                  "name": "spellIndex",
+                  "type": "core::integer::u8"
+                },
+                {
+                  "name": "targetIndex",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "startBattle",
+              "inputs": [
+                {
+                  "name": "heroesIds",
+                  "type": "core::array::Array::<core::integer::u32>"
+                },
+                {
+                  "name": "map",
+                  "type": "core::integer::u16"
+                },
+                {
+                  "name": "level",
+                  "type": "core::integer::u16"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "playTurn",
+              "inputs": [
+                {
+                  "name": "map",
+                  "type": "core::integer::u16"
+                },
+                {
+                  "name": "spellIndex",
+                  "type": "core::integer::u8"
+                },
+                {
+                  "name": "targetIndex",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "claimGlobalRewards",
+              "inputs": [
+                {
+                  "name": "map",
+                  "type": "core::integer::u16"
+                },
+                {
+                  "name": "mapProgressRequired",
+                  "type": "core::integer::u16"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "initPvp",
+              "inputs": [
+                {
+                  "name": "heroesIds",
+                  "type": "core::array::Array::<core::integer::u32>"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "setPvpTeam",
+              "inputs": [
+                {
+                  "name": "heroesIds",
+                  "type": "core::array::Array::<core::integer::u32>"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "equipRune",
+              "inputs": [
+                {
+                  "name": "runeId",
+                  "type": "core::integer::u32"
+                },
+                {
+                  "name": "heroId",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "unequipRune",
+              "inputs": [
+                {
+                  "name": "runeId",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "upgradeRune",
+              "inputs": [
+                {
+                  "name": "runeId",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "mintHero",
               "inputs": [],
               "outputs": [],
               "state_mutability": "external"
             },
             {
               "type": "function",
-              "name": "move",
+              "name": "mintRune",
+              "inputs": [],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "createAccount",
               "inputs": [
                 {
-                  "name": "direction",
-                  "type": "dojo_starter::models::Direction"
+                  "name": "username",
+                  "type": "core::felt252"
                 }
               ],
               "outputs": [],
@@ -1456,7 +1653,7 @@
         },
         {
           "type": "event",
-          "name": "dojo_starter::systems::actions::actions::Event",
+          "name": "game::systems::game::Game::Event",
           "kind": "enum",
           "variants": [
             {
@@ -1473,41 +1670,507 @@
         }
       ],
       "init_calldata": [],
-      "tag": "dojo_starter-actions",
-      "selector": "0x7a1c71029f2d0b38e3ac89b09931d08b6e48417e079c289ff19a8698d0cba33",
+      "tag": "game-Game",
+      "selector": "0x1a8648a16a23085972c33def9f4b892d20c23696438ae14a73bd0b0e82f3a3",
       "systems": [
-        "spawn",
-        "move",
+        "startPvpBattle",
+        "playArenaTurn",
+        "startBattle",
+        "playTurn",
+        "claimGlobalRewards",
+        "initPvp",
+        "setPvpTeam",
+        "equipRune",
+        "unequipRune",
+        "upgradeRune",
+        "mintHero",
+        "mintRune",
+        "createAccount",
+        "upgrade"
+      ]
+    },
+    {
+      "address": "0x9d0fa3c5c78d135c43ac3ec28916ca0d74103008bda3b7ea8ec8a91b0da91d",
+      "class_hash": "0x3958acc16d6513c5a76a31b4aaa555b39bcff0a6f3e782a92c7a2bd7aeed53a",
+      "abi": [
+        {
+          "type": "impl",
+          "name": "Settings__ContractImpl",
+          "interface_name": "dojo::contract::interface::IContract"
+        },
+        {
+          "type": "interface",
+          "name": "dojo::contract::interface::IContract",
+          "items": []
+        },
+        {
+          "type": "impl",
+          "name": "Settings__DeployedContractImpl",
+          "interface_name": "dojo::meta::interface::IDeployedResource"
+        },
+        {
+          "type": "struct",
+          "name": "core::byte_array::ByteArray",
+          "members": [
+            {
+              "name": "data",
+              "type": "core::array::Array::<core::bytes_31::bytes31>"
+            },
+            {
+              "name": "pending_word",
+              "type": "core::felt252"
+            },
+            {
+              "name": "pending_word_len",
+              "type": "core::integer::u32"
+            }
+          ]
+        },
+        {
+          "type": "interface",
+          "name": "dojo::meta::interface::IDeployedResource",
+          "items": [
+            {
+              "type": "function",
+              "name": "dojo_name",
+              "inputs": [],
+              "outputs": [
+                {
+                  "type": "core::byte_array::ByteArray"
+                }
+              ],
+              "state_mutability": "view"
+            }
+          ]
+        },
+        {
+          "type": "function",
+          "name": "dojo_init",
+          "inputs": [],
+          "outputs": [],
+          "state_mutability": "external"
+        },
+        {
+          "type": "impl",
+          "name": "WorldProviderImpl",
+          "interface_name": "dojo::contract::components::world_provider::IWorldProvider"
+        },
+        {
+          "type": "struct",
+          "name": "dojo::world::iworld::IWorldDispatcher",
+          "members": [
+            {
+              "name": "contract_address",
+              "type": "core::starknet::contract_address::ContractAddress"
+            }
+          ]
+        },
+        {
+          "type": "interface",
+          "name": "dojo::contract::components::world_provider::IWorldProvider",
+          "items": [
+            {
+              "type": "function",
+              "name": "world_dispatcher",
+              "inputs": [],
+              "outputs": [
+                {
+                  "type": "dojo::world::iworld::IWorldDispatcher"
+                }
+              ],
+              "state_mutability": "view"
+            }
+          ]
+        },
+        {
+          "type": "impl",
+          "name": "UpgradeableImpl",
+          "interface_name": "dojo::contract::components::upgradeable::IUpgradeable"
+        },
+        {
+          "type": "interface",
+          "name": "dojo::contract::components::upgradeable::IUpgradeable",
+          "items": [
+            {
+              "type": "function",
+              "name": "upgrade",
+              "inputs": [
+                {
+                  "name": "new_class_hash",
+                  "type": "core::starknet::class_hash::ClassHash"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            }
+          ]
+        },
+        {
+          "type": "constructor",
+          "name": "constructor",
+          "inputs": []
+        },
+        {
+          "type": "event",
+          "name": "dojo::contract::components::upgradeable::upgradeable_cpt::Upgraded",
+          "kind": "struct",
+          "members": [
+            {
+              "name": "class_hash",
+              "type": "core::starknet::class_hash::ClassHash",
+              "kind": "data"
+            }
+          ]
+        },
+        {
+          "type": "event",
+          "name": "dojo::contract::components::upgradeable::upgradeable_cpt::Event",
+          "kind": "enum",
+          "variants": [
+            {
+              "name": "Upgraded",
+              "type": "dojo::contract::components::upgradeable::upgradeable_cpt::Upgraded",
+              "kind": "nested"
+            }
+          ]
+        },
+        {
+          "type": "event",
+          "name": "dojo::contract::components::world_provider::world_provider_cpt::Event",
+          "kind": "enum",
+          "variants": []
+        },
+        {
+          "type": "event",
+          "name": "game::systems::settings::Settings::Event",
+          "kind": "enum",
+          "variants": [
+            {
+              "name": "UpgradeableEvent",
+              "type": "dojo::contract::components::upgradeable::upgradeable_cpt::Event",
+              "kind": "nested"
+            },
+            {
+              "name": "WorldProviderEvent",
+              "type": "dojo::contract::components::world_provider::world_provider_cpt::Event",
+              "kind": "nested"
+            }
+          ]
+        }
+      ],
+      "init_calldata": [],
+      "tag": "game-Settings",
+      "selector": "0x4d1bc91ca044b086c38bcaa567ec4e5ec2a953387b2d72ce1307d5fada3edb",
+      "systems": [
+        "dojo_init",
         "upgrade"
       ]
     }
   ],
+  "libraries": [],
   "models": [
     {
       "members": [],
-      "class_hash": "0x3f52c6cf17db224f4e7f88629adf7e907ff110baa0616c7e8ef17c5aecf1b1b",
-      "tag": "dojo_starter-DirectionsAvailable",
-      "selector": "0x77844f1facb51e60e546a9832d56c6bd04fa23be4fd5b57290caae5e9a3c1e4"
+      "class_hash": "0x4ae66c027db4192ab5986650286869a19c3df8d261c3ade46104a1655f40754",
+      "tag": "game-Account",
+      "selector": "0x29dd3dd71ad696771fe0227c7286feb9670981fb138bcffd2800de6eb2436fc"
     },
     {
       "members": [],
-      "class_hash": "0x5f79e21312b142fc289d3bd1e0f4c65ac3c4e532252c6fb1ad48b718d892dc",
-      "tag": "dojo_starter-Moves",
-      "selector": "0x2a29373f1af8348bd366a990eb3a342ef2cbe5e85160539eaca3441a673f468"
+      "class_hash": "0x3f32b1868c135169678c09f6c9a517e0095634e567828126af625284e43ccd7",
+      "tag": "game-AccountQuests",
+      "selector": "0x28c6c5cce3794e935c8a4cedf22d0f24bf8c3dde601a255f557398b7d3dd154"
     },
     {
       "members": [],
-      "class_hash": "0x2283c68ecba5c60bbbbd3b00659808a02244468e41a1d2cdba1312d65b83594",
-      "tag": "dojo_starter-Position",
-      "selector": "0x2ac8b4c190f7031b9fc44312e6b047a1dce0b3f2957c33a935ca7846a46dd5b"
+      "class_hash": "0x78321e073309b27ad4ab094cfe3f18730f76ed01c26e511fcf043ccf28df040",
+      "tag": "game-ArenaAccount",
+      "selector": "0x1173c59883b8dc56a72a646dc18e0188189dba2f6c8fd8cffb57378d5bad524"
+    },
+    {
+      "members": [],
+      "class_hash": "0x1d04d42f3e484ff491fbe470572778f1d907eb8ee6137136bfeeb23f9e5a6a0",
+      "tag": "game-ArenaBattleStorage",
+      "selector": "0x1b5875341817d8f6a25bb5c8a95322f7c622e4dc27a3a630e2b508fac2718ee"
+    },
+    {
+      "members": [],
+      "class_hash": "0x6cc7959ae2df7e78e79f38442178788a0c383940bc9e5744a187931605edba8",
+      "tag": "game-ArenaConfig",
+      "selector": "0x55fabecf4ed489b1992f67741deadaf085a6c3af65e11637de9c7fac283ddec"
+    },
+    {
+      "members": [],
+      "class_hash": "0x44bedf1f8f3d76087fd301f1748bdb3914ef8de1b4fa2d1bae0ad09160bb897",
+      "tag": "game-ArenaCurrentRankIndex",
+      "selector": "0x59625102c5b0100d28d12817baac82d6c4ef2f79ddffd6b19415d6cc6142e62"
+    },
+    {
+      "members": [],
+      "class_hash": "0x5e4c07b3c2d8b139a265a5d5f005eb3d7a33bd398a21d0736448b4e94fa1736",
+      "tag": "game-ArenaTeam",
+      "selector": "0x72603bcaddb7679e6cb3f4b43b64f194623cb942e6bbdccc6c3ec36993e527a"
+    },
+    {
+      "members": [],
+      "class_hash": "0x444f104b2a27698a74b2cd1580ffc74aacedb5166f2bc21c704ff88ed4a6bc3",
+      "tag": "game-BaseHero",
+      "selector": "0x17593f72e00c0a27c4f0d877646f54b1df1ab3624b14531ad03b524c44fbb95"
+    },
+    {
+      "members": [],
+      "class_hash": "0xa9498b93199b965a2803bf7cffd9456fbc19d244e7cbeea7ad7f4b314cca10",
+      "tag": "game-BattleStorage",
+      "selector": "0x3e3288d7e3aaf4c6786e5fbcd39b61d29a8076fd407886720f7c96b567095a8"
+    },
+    {
+      "members": [],
+      "class_hash": "0x3db4713d51c4bd5453ea70047146280c8e2eeb2174a05c59eadab13bc1d45c4",
+      "tag": "game-BonusRuneStatistics",
+      "selector": "0x597cd1c6628581abcc7020501f63aad56e6fb4a9e6385f947931b7ae24a3560"
+    },
+    {
+      "members": [],
+      "class_hash": "0x4603dacfdf71bb52b6d112492273af0231dcb2fdc37f7cdf5d024281c138800",
+      "tag": "game-Config",
+      "selector": "0x60017ca9cae7737553f7ca7dc77dfabb61af5625d7159f6cc9785e8ac54b393"
+    },
+    {
+      "members": [],
+      "class_hash": "0x37fbe8bd210fb8972f3d902ae312ccd6f1889a7e448bc5994a1c59b143a2a5f",
+      "tag": "game-EnemyRanges",
+      "selector": "0x28af341450fe0007bf1bae62f79b29d568098149fe3986f69d17ee3ac9b689c"
+    },
+    {
+      "members": [],
+      "class_hash": "0x5377e105f17df1870d4d43991add3fd93f089b42eea323b5ef696e3da9c6221",
+      "tag": "game-EntityStorage",
+      "selector": "0x4113cc43b3b55daa8f43b32b24e99030ec9703ebbebf99f96fb003d4fd7f61a"
+    },
+    {
+      "members": [],
+      "class_hash": "0x5a8523ef7ba354ff597583dd1d44eafa3eb4290246ad14fa7e081294b574421",
+      "tag": "game-GemsRewards",
+      "selector": "0x7f7e84199a400ee13e0bee6d85f61692c220bf15c2422be95783e4403cbc6db"
+    },
+    {
+      "members": [],
+      "class_hash": "0x59a2736585e9479d2d24f42976ed57ba2b59bd7d8d3af24a9280c7c78c1a920",
+      "tag": "game-GlobalQuests",
+      "selector": "0x26e30eaca9267f9c8246ef13e459644d4c935b42e692cd4317274f0c4ca00bc"
+    },
+    {
+      "members": [],
+      "class_hash": "0x1e1a8efb99b0e91ca23800ad1e8247e36a04bbc38cec8760350bb0a00e48253",
+      "tag": "game-HealthOnTurnProcStorage",
+      "selector": "0x6fad5dfd3af432206eacdd00670c94248a8359c90913da48ac4f90dcec34cba"
+    },
+    {
+      "members": [],
+      "class_hash": "0x7d1e5a75a59ed4eca8d7cea911c2a9be9d51b15686fbf0814e84a28dee449fa",
+      "tag": "game-Heroes",
+      "selector": "0x3404b465a5cdace816bd37392bb6e6d6b9a520f75bf7820ec61850eb5743971"
+    },
+    {
+      "members": [],
+      "class_hash": "0x70d0258c3919b939522a649b2e4cb86748ad05f4d5e1c0a29113a1e97cb9392",
+      "tag": "game-HeroesByRank",
+      "selector": "0x5dd608750afcdc9bf51e1ad873bf26d47d15d9aa7094fb14c8845343922c5ab"
+    },
+    {
+      "members": [],
+      "class_hash": "0xbf2784f614a861fb9005614c20308258db4f648de51c21f88062ed53c80dc2",
+      "tag": "game-LevelEnemy",
+      "selector": "0x7ad791f778e25d3761a6e84deeb8bc1dd94d4205d6b09c25dd2ef4427eefc4f"
+    },
+    {
+      "members": [],
+      "class_hash": "0x30b513ce4a3bca60786fbf66192f6fa84070d1916d847b892761600cc4b933d",
+      "tag": "game-LevelInfos",
+      "selector": "0x305d29c641729ff37afeeb6c899ba5def8603e7ca039e4d0ff28b826a5daf56"
+    },
+    {
+      "members": [],
+      "class_hash": "0xcb0d99b34a53e3856426eb3c0e0e46b676b42b0f423da61443ee147d9e993b",
+      "tag": "game-MapProgress",
+      "selector": "0x1bbf0d3ad009921094a4512a8fb19e4147e93cf3bf248dffb65cbc597584113"
+    },
+    {
+      "members": [],
+      "class_hash": "0xe694bbbc2db36038cd16771c3fe6732f380c803a43df9019a30fa653e9edb5",
+      "tag": "game-RuneStatistics",
+      "selector": "0x52b3fecd2392f5dbb76a5c9029c2977552f5ddf66f638b6eb9542322f369410"
+    },
+    {
+      "members": [],
+      "class_hash": "0x5da5f767b1b2fa67864c24a36bdeebe6ca117c75dd90ba59e0eb60327245834",
+      "tag": "game-Runes",
+      "selector": "0x34b26885894365116d1c513a8408d6f797cc087d998a8ca65ae02e1737a92c9"
+    },
+    {
+      "members": [],
+      "class_hash": "0x7f9f220276c1de055d5bec4d3df6e6471b4ee0157c7f92e2f36334f2f41555e",
+      "tag": "game-SkillBuff",
+      "selector": "0x4cc3679b6c695addd6e64602908a4b95de317a0d6d1db6d11b5b03e230c351a"
+    },
+    {
+      "members": [],
+      "class_hash": "0x5a3271135cf2fc232c15d21ecd43ac72ef5600deb402e5cb3f7992301bc7b9f",
+      "tag": "game-SkillInfos",
+      "selector": "0x28bcfd4897faa1407cb62df86c2354720a3acdc2f2e9f6f827a73b5ff17d4e0"
+    },
+    {
+      "members": [],
+      "class_hash": "0x77fe4d720e262a3b37e1c4d7e2026ff205e701c2a6e98dc3b07089f6ee0ae46",
+      "tag": "game-SkillNameSet",
+      "selector": "0x578ae399e226b847efb0bd0c4d7d6f98100696631e125aa974c1d2d56038d43"
+    },
+    {
+      "members": [],
+      "class_hash": "0x345296e8bae039258e698f515c11d161fe09fcdf4b218a0a93a10858e462bd1",
+      "tag": "game-SummonRates",
+      "selector": "0x82b066b0977fc54d716d01fb7edcf918505508972dbf870096fb9a07e11978"
+    },
+    {
+      "members": [],
+      "class_hash": "0x319ac2378ed7f62beed8cc7e9f702d66279020a6078c4c698f0c66c31629502",
+      "tag": "game-TurnTimelineStorage",
+      "selector": "0x64578fafa1132cade1a6cd5be0ef9ae8aa9774b9acd3fe813a055d65a5ec39f"
+    },
+    {
+      "members": [],
+      "class_hash": "0x4333715ad5614070e3a392697d9e7753ad2b9887c0892c1783a0918622d96cf",
+      "tag": "game-Usernames",
+      "selector": "0x6fb0237929857ba27f39ea8096ac87be6b2852516803b1e191146842913203d"
     }
   ],
   "events": [
     {
       "members": [],
-      "class_hash": "0x3dca5564f84050b20e66a2e5e7619201502d241b223ea73cfc05f29e6e20ea1",
-      "tag": "dojo_starter-Moved",
-      "selector": "0x504403e5c02b6442527721fc464d9ea5fc8f1ee600ab5ccd5c0845d36fd45f1"
+      "class_hash": "0x1bac40e190fa97838ee51cff98709de734d6710ed00961031d4e414ded3c5d",
+      "tag": "game-ArenaDefense",
+      "selector": "0x1cc0bd1ca1a6a7926ef5dfd1d0038177cb9303c9cd0874f39aad31ec06d2423"
+    },
+    {
+      "members": [],
+      "class_hash": "0x2efea20ad042aaecf836706f4d8c7064970ca62d49e1d36960d8d745c519625",
+      "tag": "game-BuffEvent",
+      "selector": "0x6c47aeb9140f952643a9bd4292957a417ceece73555792052d700329f851fbb"
+    },
+    {
+      "members": [],
+      "class_hash": "0x53cbf9f6a9e7933923cf3fb3bd111b6676d9642d124652184eaf9037d672fc6",
+      "tag": "game-EndBattle",
+      "selector": "0x146f26749561afbd95f3e026190f5e1b21a8b1aaa33ca0b7fe94afc2b3187dc"
+    },
+    {
+      "members": [],
+      "class_hash": "0x268def03be13fa108a80f05cff438e265b2575d91bf058fcac257788683c4a2",
+      "tag": "game-EndTurn",
+      "selector": "0x32655d86f85a6c0d4440669178a7cc0f3af034b1566d9729ede1af94be621a7"
+    },
+    {
+      "members": [],
+      "class_hash": "0x194ab61e9c09ce1668ca6d69c3ab5ee7f8f7e9a2d0972f6c439d538e00ea065",
+      "tag": "game-EntityBuffEvent",
+      "selector": "0x28cdac9339320f4dee4a61cf07ed38663e06b6198bb0577cb2e9c7be2a5e71"
+    },
+    {
+      "members": [],
+      "class_hash": "0xda2068cdfcac563345e2e5afac6437945c6709d02ca8592528a132806b1093",
+      "tag": "game-ExperienceGain",
+      "selector": "0x2f69071a6da6586e23417ea21196c4a9bfc107d765f3012a878c960d09430d5"
+    },
+    {
+      "members": [],
+      "class_hash": "0x7834df360c2a7c3c148f96c8b3c690c96cffc0a4734b79d5f1d8eb357a413f9",
+      "tag": "game-HeroMinted",
+      "selector": "0x5cd4feeb919f749d2113780b85846908c9a465426a11b003cdaf99cac7f493c"
+    },
+    {
+      "members": [],
+      "class_hash": "0x354b6d094ed413f30f57725e83858f98e12d221e30331c02b18a7a0c101e6d",
+      "tag": "game-IdAndValue",
+      "selector": "0x720f3fbb74580b61d3118bc6f96b386ab3b20d1209d42b4949cdece448bf392"
+    },
+    {
+      "members": [],
+      "class_hash": "0x2ed07ab813c36ce4b951c12850ddfa386cc9fb8627327ab9e4a15203cbdc7a7",
+      "tag": "game-InitArena",
+      "selector": "0x66bd85003c9ccad845b9076b000e39b9c5ac0c6456b16a921274f4a11f23c6a"
+    },
+    {
+      "members": [],
+      "class_hash": "0x3b88e694a8d7bf412827da359665beb0d45c297552b2a653e5a089d0b6a5af2",
+      "tag": "game-Loot",
+      "selector": "0x66cb9c470f0c2f8eb52063831913bc28a5d2cc0095ee008d9afa4729ef7ff00"
+    },
+    {
+      "members": [],
+      "class_hash": "0x7e021da12100f1b604073af592d5dfc88259f82dae220d860c9059d24493352",
+      "tag": "game-NewAccount",
+      "selector": "0x65cdf5ede2c5320dc30fab276e156e4253ca7deede70c190212847aa1a47fcc"
+    },
+    {
+      "members": [],
+      "class_hash": "0x317e2d1a538ad340d19ce81132a6539ac00318de81016ae92b62418993e46f0",
+      "tag": "game-NewBattle",
+      "selector": "0x21aceb8cab0621476df75e3efd66d07c4d790b6e2eb5c92d9150b3d3a2c6603"
+    },
+    {
+      "members": [],
+      "class_hash": "0x23eee39a4f2a52bfd1677c8be2b4de3fc9fc4bed398a82140a0a3bd4008d6db",
+      "tag": "game-RankChange",
+      "selector": "0xe22a1d364a089c6f33799ae1ea6e07c836d786174f2bb4a65f6092063cb96d"
+    },
+    {
+      "members": [],
+      "class_hash": "0x9be3187e368e6aeed648401071ddea3e0f8bc52205bc78010389500b0db28d",
+      "tag": "game-RuneBonusEvent",
+      "selector": "0x794178c7631196bc290e8bfc9e5181d0e91ac489ec0081bf269a8ec9db97190"
+    },
+    {
+      "members": [],
+      "class_hash": "0xaea0af7ae241c0c83e437cb48a0ecd74834ad91685ec43eef59d77dab5402f",
+      "tag": "game-RuneMinted",
+      "selector": "0x6d85c5ad96a5a0ecb1c17c6cbc0aad1b4a433075ae1018ad576191cb818fc99"
+    },
+    {
+      "members": [],
+      "class_hash": "0x56b4cd1b8e81f954085770f559a3ebc45260b7e9c4e0cbf24f7799128852d48",
+      "tag": "game-RuneUpgraded",
+      "selector": "0x2bbedb1d70a04b1a27421adb46ec09fb3f1872b840a1a9d4cc2eb9918d6dd6b"
+    },
+    {
+      "members": [],
+      "class_hash": "0x27cc16683fb6988121fc876000dc0d17dff6c76b48354e8712635ad3b3829e7",
+      "tag": "game-Skill",
+      "selector": "0x5f54c1131e227c06bfd2efdb9cfcc29caa76c066d5cffa05383502e7b2b2735"
+    },
+    {
+      "members": [],
+      "class_hash": "0x480aab5969212c2461bba23dbcc463b3607a271d7e1abc56b5166bcd27eefc5",
+      "tag": "game-StartTurn",
+      "selector": "0x6925ced2bed882a0dde1df155f98d4722cbd6b1ab353db7434904ca89d0355a"
+    },
+    {
+      "members": [],
+      "class_hash": "0x38f77654eeecbffdd662718bd84da1fa021531b57ab6e8a2c3a1d85ab098cd7",
+      "tag": "game-TimestampEnergy",
+      "selector": "0x1866ca3eed92ab9f491e43915b3e908fc37fb5762d5d89a49b1d3bd3aa8ae42"
+    },
+    {
+      "members": [],
+      "class_hash": "0xef4c6e9697d9050dbad5a1be666d28d0d987fdaae2a8151e468f8d1fdf39d6",
+      "tag": "game-TimestampPvpEnergy",
+      "selector": "0x16d7a2ff0fe99f281c44903e5433dfb57d847f23583a7e515163a8f4572666b"
+    },
+    {
+      "members": [],
+      "class_hash": "0x162f98ba2a2991d5b794249aa441394a6913accb3d98d35bb8555bc20c6c617",
+      "tag": "game-TurnBarEvent",
+      "selector": "0x21fd46fab7f1871d740d993e56275884bc834f1a645894ae68f41a1e8f5c7bd"
     }
-  ]
+  ],
+  "external_contracts": []
 }

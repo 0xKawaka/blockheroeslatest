@@ -1,4 +1,4 @@
-pub mod statistics;
+pub mod battleStatistics;
 pub mod turnBar;
 pub mod skill;
 pub mod healthOnTurnProc;
@@ -11,17 +11,17 @@ use game::models::battle::entity::stunOnTurnProc::{StunOnTurnProcImpl};
 use game::models::battle::entity::skill::{SkillImpl, buff::BuffType};
 use game::models::battle::entity::cooldowns::{CooldownsImpl, CooldownsTrait};
 
-use game::models::battle::entity::statistics::statistic::{StatisticTrait, Statistic};
-use game::models::battle::entity::{stunOnTurnProc::StunOnTurnProcTrait, statistics::StatisticsTrait};
+use game::models::battle::entity::battleStatistics::{BattleStatisticsTrait, BattleStatisticsImpl, battleStatistic::{BattleStatisticTrait, BattleStatisticImpl}};
+use game::models::battle::entity::{stunOnTurnProc::StunOnTurnProcTrait};
 use game::models::battle::BattleTrait;
-use game::models::battle::entity::statistics::{StatisticsImpl, statModifier::StatModifier};
 use game::models::battle::entity::turnBar::TurnBarTrait;
 use game::models::battle::{Battle, BattleImpl};
 
-use alexandria_data_structures::vec::{VecTrait, NullableVecImpl};
+use game::utils::vec::VecTrait;
+
 use game::utils::random::{rand8};
 
-use game::models::events::{Event, Skill, EndTurn, EntityBuffEvent};
+use game::models::events::{Skill, EndTurn, EntityBuffEvent};
 
 use dojo::world::WorldStorage;
 use dojo::event::EventStorage;
@@ -43,7 +43,7 @@ pub struct Entity {
     pub heroId: u32,
     pub name: felt252,
     pub turnBar: turnBar::TurnBar,
-    pub statistics: statistics::Statistics,
+    pub statistics: battleStatistics::BattleStatistics,
     pub cooldowns: cooldowns::Cooldowns,
     pub stunOnTurnProc: stunOnTurnProc::StunOnTurnProc,
     pub allyOrEnemy: AllyOrEnemy,
@@ -54,7 +54,7 @@ pub fn new(index: u32, heroId: u32, name: felt252, health: u64, attack: u64, def
         index: index,
         heroId: heroId,
         name: name,
-        statistics: statistics::new(health, attack, defense, speed, criticalChance, criticalDamage),
+        statistics: battleStatistics::new(health, attack, defense, speed, criticalChance, criticalDamage),
         turnBar: turnBar::new(index, speed),
         cooldowns: cooldowns::new(),
         stunOnTurnProc: stunOnTurnProc::new(0),
@@ -107,7 +107,7 @@ pub impl EntityImpl of EntityTrait {
             return;
         }
         self.setMaxHealthIfHealthIsGreater();
-        println!("Health {} {}", self.getHealth());
+        println!("Health {}", self.getHealth());
 
         self.cooldowns.reduceCooldowns();
         if(self.isStunned()){
@@ -262,7 +262,6 @@ pub impl EntityImpl of EntityTrait {
         self.statistics.health += heal.try_into().unwrap();
     }
     fn setMaxHealthIfHealthIsGreater(ref self: Entity) {
-        // if(!self.getHealth().sign && self.getHealth().mag > self.getMaxHealth()) {
         let maxHeathSigned: i64 = self.getMaxHealth().try_into().unwrap();
         if(self.statistics.health > maxHeathSigned) {
             self.statistics.health = maxHeathSigned;
@@ -314,14 +313,14 @@ pub impl EntityImpl of EntityTrait {
     }
     fn getEventStatisticsBuffsArray(self: Entity) -> Array<EntityBuffEvent> {
         let mut buffsArray: Array<EntityBuffEvent> = Default::default();
-        if(self.statistics.attack.getBonusValue() > 0 && self.statistics.attack.bonus.duration > 0) {
-            buffsArray.append(EntityBuffEvent { name: 'attack', duration: self.statistics.attack.bonus.duration });
+        if(self.statistics.attack.getBonusValue() > 0 && self.statistics.attack.getBonusDuration() > 0) {
+            buffsArray.append(EntityBuffEvent { name: 'attack', duration: self.statistics.attack.getBonusDuration() });
         }
-        if(self.statistics.defense.getBonusValue() > 0 && self.statistics.defense.bonus.duration > 0) {
-            buffsArray.append(EntityBuffEvent { name: 'defense', duration: self.statistics.defense.bonus.duration });
+        if(self.statistics.defense.getBonusValue() > 0 && self.statistics.defense.getBonusDuration() > 0) {
+            buffsArray.append(EntityBuffEvent { name: 'defense', duration: self.statistics.defense.getBonusDuration() });
         }
-        if(self.statistics.speed.getBonusValue() > 0 && self.statistics.speed.bonus.duration > 0) {
-            buffsArray.append(EntityBuffEvent { name: 'speed', duration: self.statistics.speed.bonus.duration });
+        if(self.statistics.speed.getBonusValue() > 0 && self.statistics.speed.getBonusDuration() > 0) {
+            buffsArray.append(EntityBuffEvent { name: 'speed', duration: self.statistics.speed.getBonusDuration() });
         }
         return buffsArray;
     }
@@ -334,14 +333,14 @@ pub impl EntityImpl of EntityTrait {
     }
     fn getEventStatisticsStatusArray(self: Entity) -> Array<EntityBuffEvent> {
         let mut statusArray: Array<EntityBuffEvent> = Default::default();
-        if(self.statistics.attack.getMalusValue() > 0 && self.statistics.attack.malus.duration > 0) {
-            statusArray.append(EntityBuffEvent { name: 'attack', duration: self.statistics.attack.malus.duration });
+        if(self.statistics.attack.getMalusValue() > 0 && self.statistics.attack.getMalusDuration() > 0) {
+            statusArray.append(EntityBuffEvent { name: 'attack', duration: self.statistics.attack.getMalusDuration() });
         }
-        if(self.statistics.defense.getMalusValue() > 0 && self.statistics.defense.malus.duration > 0) {
-            statusArray.append(EntityBuffEvent { name: 'defense', duration: self.statistics.defense.malus.duration });
+        if(self.statistics.defense.getMalusValue() > 0 && self.statistics.defense.getMalusDuration() > 0) {
+            statusArray.append(EntityBuffEvent { name: 'defense', duration: self.statistics.defense.getMalusDuration() });
         }
-        if(self.statistics.speed.getMalusValue() > 0 && self.statistics.speed.malus.duration > 0) {
-            statusArray.append(EntityBuffEvent { name: 'speed', duration: self.statistics.speed.malus.duration });
+        if(self.statistics.speed.getMalusValue() > 0 && self.statistics.speed.getMalusDuration() > 0) {
+            statusArray.append(EntityBuffEvent { name: 'speed', duration: self.statistics.speed.getMalusDuration() });
         }
         return statusArray;
     }

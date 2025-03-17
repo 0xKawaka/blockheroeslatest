@@ -1,7 +1,6 @@
-use alexandria_data_structures::vec::{NullableVecImpl};
+use game::utils::vec::VecTrait;
 use game::models::battle::{Battle, BattleTrait};
 use game::models::battle::entity::{Entity, EntityImpl, EntityTrait};
-
 
 #[derive(Copy, Drop, PartialEq, Serde, Introspect)]
 pub enum BuffType {

@@ -21,17 +21,17 @@
 //     fn test() {
 //         let caller = starknet::contract_address_const::<0x0>();
 //         let world = setup_world();
-//         SkillFactoryImpl::initSkills(world);
-//         SkillFactoryImpl::initSkillsBuffs(world);
-//         SkillFactoryImpl::initHeroSkillNameSet(world);
+//         SkillFactoryImpl::initSkills(ref world);
+//         SkillFactoryImpl::initSkillsBuffs(ref world);
+//         SkillFactoryImpl::initHeroSkillNameSet(ref world);
 
-//         let skill = SkillFactoryImpl::getSkill(world, 'Water Shield');
+//         let skill = SkillFactoryImpl::getSkill(ref world, 'Water Shield');
 //         assert(skill.cooldown == 4, 'skill cooldown should be 4');
 
-//         // let skillSet: Array<Skill> = SkillFactoryImpl::getSkillSet(world, 'elandor');
+//         // let skillSet: Array<Skill> = SkillFactoryImpl::getSkillSet(ref world, 'elandor');
 //         // assert(skillSet.len() == 3, 'skillSet len');
 
-//         // let skillSets: Array<Array<Skill>> = SkillFactoryImpl::getSkillSets(world, array!['elandor', 'marella']);
+//         // let skillSets: Array<Array<Skill>> = SkillFactoryImpl::getSkillSets(ref world, array!['elandor', 'marella']);
 //         // assert(skillSets[1].len() == 3, 'skillSets[1] len');
 //     }
 // }

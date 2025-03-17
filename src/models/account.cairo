@@ -41,12 +41,6 @@ pub fn new(username: felt252, owner: ContractAddress, ref world: WorldStorage) -
     let startingCrystals: u32 = configStartingCrystals.value.try_into().unwrap();
     let startingGems: u32 = configStartingGems.value.try_into().unwrap();
     let startingSummonChests: u32 = configStartingSummonChests.value.try_into().unwrap();
-    
-    // let maxEnergy: u16 = get!(world, ConfigType::MaxEnergy, Config).value.try_into().unwrap();
-    // let maxPvpEnergy: u16 = get!(world, ConfigType::MaxPvpEnergy, Config).value.try_into().unwrap();
-    // let startingCrystals: u32 = get!(world, ConfigType::StartingCrystals, Config).value.try_into().unwrap();
-    // let startingGems: u32 = get!(world, ConfigType::StartingGems, Config).value.try_into().unwrap();
-    // let startingSummonChests: u32 = get!(world, ConfigType::StartingSummonChests, Config).value.try_into().unwrap();
 
     Account {
         owner: owner,
@@ -88,7 +82,6 @@ pub impl AccountImpl of AccountTrait {
         let now = get_block_timestamp();
         let configMaxEnergy: Config = world.read_model(ConfigType::MaxEnergy);
         let maxEnergy: u16 = configMaxEnergy.value.try_into().unwrap();
-        // let maxEnergy: u16 = get!(world, ConfigType::MaxEnergy, Config).value.try_into().unwrap();
         
         if(self.energy >= maxEnergy) {
             self.lastEnergyUpdateTimestamp = now;
@@ -100,7 +93,6 @@ pub impl AccountImpl of AccountTrait {
 
         let configTimeTickEnergy: Config = world.read_model(ConfigType::TimeTickEnergy);
         let timeTickEnergy: u64 = configTimeTickEnergy.value;
-        // let timeTickEnergy: u64 = get!(world, ConfigType::TimeTickEnergy, Config).value;
 
         let timeDiff = now - self.lastEnergyUpdateTimestamp;
         let energyToAdd = timeDiff / timeTickEnergy;
@@ -134,7 +126,6 @@ pub impl AccountImpl of AccountTrait {
         let now = get_block_timestamp();
         let configMaxPvpEnergy: Config = world.read_model(ConfigType::MaxPvpEnergy);
         let maxPvpEnergy: u16 = configMaxPvpEnergy.value.try_into().unwrap();
-        // let maxPvpEnergy: u16 = get!(world, ConfigType::MaxPvpEnergy, Config).value.try_into().unwrap();
 
         if(self.pvpEnergy >= maxPvpEnergy) {
             self.lastPvpEnergyUpdateTimestamp = now;
@@ -143,7 +134,6 @@ pub impl AccountImpl of AccountTrait {
 
         let configTimeTickPvpEnergy: Config = world.read_model(ConfigType::TimeTickPvpEnergy);
         let timeTickPvpEnergy: u64 = configTimeTickPvpEnergy.value;
-        // let timeTickPvpEnergy: u64 = get!(world, ConfigType::TimeTickPvpEnergy, Config).value;
 
         let timeDiff = now - self.lastPvpEnergyUpdateTimestamp;
         let energyToAdd = timeDiff / timeTickPvpEnergy;

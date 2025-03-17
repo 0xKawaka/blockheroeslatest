@@ -1,7 +1,7 @@
 use core::array::ArrayTrait;
 use core::fmt::Display;
 
-fn includes<T, +PartialEq<T>>(arr: @Array<T>, item: @T) -> bool {
+pub fn includes<T, +PartialEq<T>>(arr: @Array<T>, item: @T) -> bool {
     let arrLen = arr.len();
     let mut i: u32 = 0;
     let mut found: bool = false;
@@ -19,7 +19,7 @@ fn includes<T, +PartialEq<T>>(arr: @Array<T>, item: @T) -> bool {
     return found;
 }
 
-fn print<T, +Copy<T>, +Display<T>, +Drop<T>>(arr: @Array<T>) {
+pub fn print<T, +Copy<T>, +Display<T>, +Drop<T>>(arr: @Array<T>) {
     let arrLen = arr.len();
     let mut i: u32 = 0;
     loop {

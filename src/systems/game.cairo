@@ -1,26 +1,26 @@
 use starknet::ContractAddress;
 
-#[dojo::interface]
-trait IGame {
-    fn startPvpBattle(enemyOwner: ContractAddress, heroesIds: Array<u32>);
-    fn playArenaTurn(spellIndex: u8, targetIndex: u32);
-    fn startBattle(heroesIds: Array<u32>, map: u16, level: u16);
-    fn playTurn(map: u16, spellIndex: u8, targetIndex: u32);
-    fn claimGlobalRewards(map: u16, mapProgressRequired: u16);
-    fn initPvp(heroesIds: Array<u32>);
-    fn setPvpTeam(heroesIds: Array<u32>);
-    fn equipRune(runeId: u32, heroId: u32);
-    fn unequipRune(runeId: u32);
-    fn upgradeRune(runeId: u32);
-    fn mintHero();
-    fn mintRune();
-    fn createAccount(username: felt252);
+#[starknet::interface]
+pub trait IGame<T> {
+    fn startPvpBattle(ref self: T, enemyOwner: ContractAddress, heroesIds: Array<u32>);
+    fn playArenaTurn(ref self: T, spellIndex: u8, targetIndex: u32);
+    fn startBattle(ref self: T, heroesIds: Array<u32>, map: u16, level: u16);
+    fn playTurn(ref self: T, map: u16, spellIndex: u8, targetIndex: u32);
+    fn claimGlobalRewards(ref self: T, map: u16, mapProgressRequired: u16);
+    fn initPvp(ref self: T, heroesIds: Array<u32>);
+    fn setPvpTeam(ref self: T, heroesIds: Array<u32>);
+    fn equipRune(ref self: T, runeId: u32, heroId: u32);
+    fn unequipRune(ref self: T, runeId: u32);
+    fn upgradeRune(ref self: T, runeId: u32);
+    fn mintHero(ref self: T);
+    fn mintRune(ref self: T);
+    fn createAccount(ref self: T, username: felt252);
 }
 
 #[dojo::contract]
 pub mod Game {
     use core::array::ArrayTrait;
-    use starknet::{get_caller_address,get_block_timestamp, ContractAddress};
+    use starknet::{get_caller_address, ContractAddress};
 
     use game::systems::accounts::Accounts::AccountsImpl;
     use game::systems::entityFactory::EntityFactory::EntityFactoryImpl;
@@ -28,98 +28,96 @@ pub mod Game {
     use game::systems::battles::Battles::BattlesImpl;
     use game::systems::arena::Arena::ArenaImpl;
     use game::systems::quests::Quests::QuestsImpl;
-    use game::models::hero::{Hero, HeroImpl, HeroTrait};
-    use game::models::battle::entity::{Entity, EntityImpl, EntityTrait, AllyOrEnemy};
+    use game::models::hero::{HeroImpl};
+    use game::models::battle::entity::{EntityImpl, AllyOrEnemy};
     use game::models::storage::mapProgress::MapProgress;
-    use game::models::map::Map;
-    use alexandria_data_structures::vec::{NullableVec, NullableVecImpl, VecTrait};
 
     use dojo::model::ModelStorage;
-    use dojo::event::EventStorage;
 
     #[abi(embed_v0)]
-    impl GameImpl of super::IGame<ContractState> {
+    pub impl GameImpl of super::IGame<ContractState> {
         fn startPvpBattle(ref self: ContractState, enemyOwner: ContractAddress, heroesIds: Array<u32>) {
             let mut world = self.world(@"game");
             assert(heroesIds.len() < 5 && heroesIds.len() > 0, '1 hero min, 4 heroes max');
             let caller = get_caller_address();
-            AccountsImpl::hasAccount(world, caller);
-            ArenaImpl::hasAccount(world, caller);
-            ArenaImpl::hasAccount(world, enemyOwner);
-            ArenaImpl::assertEnemyInRange(world, caller, enemyOwner);
-            AccountsImpl::decreasePvpEnergy(world, caller, 1);
-            let allyHeroes = AccountsImpl::getHeroes(world, caller, heroesIds.span());
-            let allyEntities = EntityFactoryImpl::newEntities(world, caller, 0, allyHeroes, AllyOrEnemy::Ally);
-            let enemyHeroesIndex = ArenaImpl::getTeam(world, enemyOwner);
-            let enemyHeroes = AccountsImpl::getHeroes(world, enemyOwner, enemyHeroesIndex.span());
-            let enemyEntities = EntityFactoryImpl::newEntities(world, enemyOwner, allyEntities.len(), enemyHeroes, AllyOrEnemy::Enemy);
-            BattlesImpl::newArenaBattle(world, caller, enemyOwner, allyEntities, enemyEntities);
+            AccountsImpl::hasAccount(ref world, caller);
+            ArenaImpl::hasAccount(ref world, caller);
+            ArenaImpl::hasAccount(ref world, enemyOwner);
+            ArenaImpl::assertEnemyInRange(ref world, caller, enemyOwner);
+            AccountsImpl::decreasePvpEnergy(ref world, caller, 1);
+            let allyHeroes = AccountsImpl::getHeroes(ref world, caller, heroesIds.span());
+            let allyEntities = EntityFactoryImpl::newEntities(ref world, caller, 0, allyHeroes, AllyOrEnemy::Ally);
+            let enemyHeroesIndex = ArenaImpl::getTeam(ref world, enemyOwner);
+            let enemyHeroes = AccountsImpl::getHeroes(ref world, enemyOwner, enemyHeroesIndex.span());
+            let enemyEntities = EntityFactoryImpl::newEntities(ref world, enemyOwner, allyEntities.len(), enemyHeroes, AllyOrEnemy::Enemy);
+            BattlesImpl::newArenaBattle(ref world, caller, enemyOwner, allyEntities, enemyEntities);
         }
         fn playArenaTurn(ref self: ContractState, spellIndex: u8, targetIndex: u32) {
             let mut world = self.world(@"game");
-            BattlesImpl::playArenaTurn(world, get_caller_address(), spellIndex, targetIndex);
+            BattlesImpl::playArenaTurn(ref world, get_caller_address(), spellIndex, targetIndex);
         }
         fn startBattle(ref self: ContractState, heroesIds: Array<u32>, map: u16, level: u16) {
             let mut world = self.world(@"game");
             assert(heroesIds.len() < 5 && heroesIds.len() > 0, '1 hero min, 4 heroes max');
-            AccountsImpl::hasAccount(world, get_caller_address());
+            AccountsImpl::hasAccount(ref world, get_caller_address());
             let caller = get_caller_address();
-            let progressLevel = get!(world, (caller, map), MapProgress).level;
+            let mapProgress: MapProgress = world.read_model((caller, map));
+            let progressLevel = mapProgress.level;
             assert(progressLevel >= level, 'level not unlocked');
-            let energyCost = LevelsImpl::getEnergyCost(world, map, level);
-            AccountsImpl::decreaseEnergy(world, caller, energyCost);
-            let allyHeroes = AccountsImpl::getHeroes(world, caller, heroesIds.span());
-            let allyEntities = EntityFactoryImpl::newEntities(world, caller, 0, allyHeroes, AllyOrEnemy::Ally);
-            let enemyHeroes = LevelsImpl::getEnemies(world, map, level);
-            let enemyEntities = EntityFactoryImpl::newEntities(world, caller, allyEntities.len(), enemyHeroes, AllyOrEnemy::Enemy);
-            BattlesImpl::newBattle(world, caller, allyEntities, enemyEntities, map, level);
+            let energyCost = LevelsImpl::getEnergyCost(ref world, map, level);
+            AccountsImpl::decreaseEnergy(ref world, caller, energyCost);
+            let allyHeroes = AccountsImpl::getHeroes(ref world, caller, heroesIds.span());
+            let allyEntities = EntityFactoryImpl::newEntities(ref world, caller, 0, allyHeroes, AllyOrEnemy::Ally);
+            let enemyHeroes = LevelsImpl::getEnemies(ref world, map, level);
+            let enemyEntities = EntityFactoryImpl::newEntities(ref world, caller, allyEntities.len(), enemyHeroes, AllyOrEnemy::Enemy);
+            BattlesImpl::newBattle(ref world, caller, allyEntities, enemyEntities, map, level);
         }
         fn playTurn(ref self: ContractState, map: u16, spellIndex: u8, targetIndex: u32) {
             let mut world = self.world(@"game");
-            BattlesImpl::playTurn(world, get_caller_address(), map, spellIndex, targetIndex);
+            BattlesImpl::playTurn(ref world, get_caller_address(), map, spellIndex, targetIndex);
         }
         fn claimGlobalRewards(ref self: ContractState, map: u16, mapProgressRequired: u16) {
             let mut world = self.world(@"game");
-            QuestsImpl::claimGlobalRewards(world, get_caller_address(), map, mapProgressRequired);
+            QuestsImpl::claimGlobalRewards(ref world, get_caller_address(), map, mapProgressRequired);
         }
         fn initPvp(ref self: ContractState, heroesIds: Array<u32>) {
             let mut world = self.world(@"game");
             assert(heroesIds.len() < 5 && heroesIds.len() > 0, '1 hero min, 4 heroes max');
-            AccountsImpl::hasAccount(world, get_caller_address());
-            ArenaImpl::hasNoAccount(world, get_caller_address());
-            AccountsImpl::isOwnerOfHeroes(world, get_caller_address(), heroesIds.span());
-            ArenaImpl::initAccount(world, get_caller_address(), heroesIds);
+            AccountsImpl::hasAccount(ref world, get_caller_address());
+            ArenaImpl::hasNoAccount(ref world, get_caller_address());
+            AccountsImpl::isOwnerOfHeroes(ref world, get_caller_address(), heroesIds.span());
+            ArenaImpl::initAccount(ref world, get_caller_address(), heroesIds);
         }
         fn setPvpTeam(ref self: ContractState, heroesIds: Array<u32>) {
             let mut world = self.world(@"game");
             assert(heroesIds.len() < 5 && heroesIds.len() > 0, '1 hero min, 4 heroes max');
-            AccountsImpl::hasAccount(world, get_caller_address());
-            AccountsImpl::isOwnerOfHeroes(world, get_caller_address(), heroesIds.span());
-            ArenaImpl::setTeam(world, get_caller_address(), heroesIds.span());
+            AccountsImpl::hasAccount(ref world, get_caller_address());
+            AccountsImpl::isOwnerOfHeroes(ref world, get_caller_address(), heroesIds.span());
+            ArenaImpl::setTeam(ref world, get_caller_address(), heroesIds.span());
         }
         fn equipRune(ref self: ContractState, runeId: u32, heroId: u32) {
             let mut world = self.world(@"game");
-            AccountsImpl::equipRune(world, get_caller_address(), runeId, heroId);
+            AccountsImpl::equipRune(ref world, get_caller_address(), runeId, heroId);
         }
         fn unequipRune(ref self: ContractState, runeId: u32) {
             let mut world = self.world(@"game");
-            AccountsImpl::unequipRune(world, get_caller_address(), runeId);
+            AccountsImpl::unequipRune(ref world, get_caller_address(), runeId);
         }
         fn upgradeRune(ref self: ContractState, runeId: u32) {
             let mut world = self.world(@"game");
-            AccountsImpl::upgradeRune(world, get_caller_address(), runeId);
+            AccountsImpl::upgradeRune(ref world, get_caller_address(), runeId);
         }
         fn mintHero(ref self: ContractState) {
             let mut world = self.world(@"game");
-            AccountsImpl::mintHero(world, get_caller_address());
+            AccountsImpl::mintHero(ref world, get_caller_address());
         }
         fn mintRune(ref self: ContractState) {
             let mut world = self.world(@"game");
-            AccountsImpl::mintRune(world, get_caller_address());
+            AccountsImpl::mintRune(ref world, get_caller_address());
         }
         fn createAccount(ref self: ContractState, username: felt252) {
             let mut world = self.world(@"game");
-            AccountsImpl::createAccount(world,  username, get_caller_address());
+            AccountsImpl::createAccount(ref world, username, get_caller_address());
         }
     }
 }

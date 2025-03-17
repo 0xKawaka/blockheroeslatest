@@ -2,7 +2,7 @@
 cairo-version = "=2.9.2"
 name = "game"
 version = "1.2.2"
-edition = "2024_07"
+edition = "2023_01"
 
 [cairo]
 sierra-replace-ids = true
@@ -14,7 +14,6 @@ move = "sozo execute dojo_starter-actions move -c 1 --wait" # scarb run move
 
 [dependencies]
 dojo = { git = "https://github.com/dojoengine/dojo", tag = "v1.2.2" }
-alexandria_data_structures = { git = "https://github.com/keep-starknet-strange/alexandria.git", tag = "v0.3.0" }
 
 [[target.starknet-contract]]
 build-external-contracts = ["dojo::world::world_contract::world"]
@@ -22,4 +21,3 @@ build-external-contracts = ["dojo::world::world_contract::world"]
 [dev-dependencies]
 cairo_test = "=2.9.2"
 dojo_cairo_test = { git = "https://github.com/dojoengine/dojo", tag = "v1.2.2" }
-alexandria_data_structures = { git = "https://github.com/keep-starknet-strange/alexandria.git", tag = "v0.3.0" }

@@ -1,11 +1,10 @@
 use game::models::battle::entity::{Entity, AllyOrEnemy};
-use game::models::storage::{statistics, statistics::{Statistics, runeStatistics::RuneStatistics, bonusRuneStatistics::BonusRuneStatistics}};
-use game::models::storage::baseHero::BaseHero;
-use game::models::hero::{Hero, rune::Rune, rune::RuneStatistic};
+use game::models::storage::statistics::Statistics;
+use game::models::hero::{Hero, rune::Rune};
 use starknet::ContractAddress;
-use dojo::world::{WorldStorageTrait, WorldStorage};
+use dojo::world::WorldStorage;
 
-trait IEntityFactory {
+pub trait IEntityFactory {
     fn newEntities(ref world: WorldStorage, owner: ContractAddress, startIndex: u32, heroes: Array<Hero>, allyOrEnemy: AllyOrEnemy) -> Array<Entity>;
     fn newEntity(ref world: WorldStorage, owner: ContractAddress, index: u32, hero: Hero, allyOrEnemy: AllyOrEnemy) -> Entity;
     fn computeRunesBonuses(ref world: WorldStorage, runes: Array<Rune>, baseStats: Statistics) -> Statistics;
@@ -16,19 +15,19 @@ trait IEntityFactory {
 }
 
 pub mod EntityFactory {
-    use core::option::OptionTrait;
     use starknet::ContractAddress;
 
-    use dojo::world::{WorldStorageTrait, WorldStorage};
+    use dojo::world::WorldStorage;
+    use dojo::model::ModelStorage;
     use game::models::hero::{HeroTrait, Hero, rune::Rune, rune::RuneImpl, rune::RuneRarity, rune::RuneStatistic};
-    use game::models::battle::{entity, entity::Entity, entity::EntityImpl, entity::EntityTrait, entity::AllyOrEnemy, entity::cooldowns::CooldownsTrait};
-    use game::models::battle::entity::{skill, skill::SkillImpl, skill::TargetType, skill::damage, skill::heal};
-    use game::models::battle::entity::healthOnTurnProc::{HealthOnTurnProc, HealthOnTurnProcImpl};
-    use game::models::storage::{statistics, statistics::{runeStatistics, runeStatistics::RuneStatistics, bonusRuneStatistics, bonusRuneStatistics::BonusRuneStatistics}};
-    use game::models::storage::{baseHero, baseHero::{BaseHero, BaseHeroImpl, Statistics}, heroesByRank::HeroesByRank };
+    use game::models::battle::{entity, entity::Entity, entity::EntityImpl, entity::AllyOrEnemy};
+    use game::models::battle::entity::{skill::SkillImpl};
+    use game::models::battle::entity::healthOnTurnProc::{HealthOnTurnProcImpl};
+    use game::models::storage::{statistics, statistics::{runeStatistics::RuneStatistics, bonusRuneStatistics::BonusRuneStatistics}};
+    use game::models::storage::{baseHero::{BaseHero, BaseHeroImpl}, statistics::Statistics, heroesByRank::HeroesByRank };
     use game::systems::accounts::Accounts::AccountsImpl;
 
-    impl EntityFactoryImpl of super::IEntityFactory {
+    pub impl EntityFactoryImpl of super::IEntityFactory {
         fn newEntities(ref world: WorldStorage, owner: ContractAddress, startIndex: u32, heroes: Array<Hero>, allyOrEnemy: AllyOrEnemy) -> Array<Entity> {
             let mut entities: Array<Entity> = Default::default();
             let mut i: u32 = 0;
@@ -36,7 +35,7 @@ pub mod EntityFactory {
                 if i == heroes.len() {
                     break;
                 }
-                let entity = Self::newEntity(world, owner, startIndex + i, *heroes[i], allyOrEnemy);
+                let entity = Self::newEntity(ref world, owner, startIndex + i, *heroes[i], allyOrEnemy);
                 entities.append(entity);
                 i += 1;
             };
@@ -46,8 +45,8 @@ pub mod EntityFactory {
             let baseHero: BaseHero = world.read_model(hero.name);
             let baseStatsValues = baseHero.computeAllStatistics(hero.level, hero.rank);
             let runesIndex = hero.getRunesIndexArray();
-            let runes = AccountsImpl::getRunes(world, owner, runesIndex);
-            let runesStatsValues = Self::computeRunesBonuses(world, runes, baseStatsValues);
+            let runes = AccountsImpl::getRunes(ref world, owner, runesIndex);
+            let runesStatsValues = Self::computeRunesBonuses(ref world, runes, baseStatsValues);
 
             return entity::new(
                 index,
@@ -100,53 +99,53 @@ pub mod EntityFactory {
         }
 
         fn initBaseHeroesDict(ref world: WorldStorage) {
-            world.write_model(BaseHero { heroName: 'sirocco', rank: 0, statistics: statistics::new(1500, 190, 120, 190, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'wellan', rank: 0, statistics: statistics::new(1500, 165, 160, 175, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'marella', rank: 0, statistics: statistics::new(1500, 150, 170, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'elandor', rank: 0, statistics: statistics::new(1500, 185, 130, 185, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'diana', rank: 0, statistics: statistics::new(1500, 185, 124, 191, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'elric', rank: 0, statistics: statistics::new(1500, 170, 160, 170, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'nereus', rank: 0, statistics: statistics::new(1500, 185, 135, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'rex', rank: 0, statistics: statistics::new(1500, 180, 160, 160, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'celeste', rank: 0, statistics: statistics::new(1500, 185, 130, 185, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'oakheart', rank: 0, statistics: statistics::new(1500, 170, 160, 170, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'sylvara', rank: 0, statistics: statistics::new(1500, 150, 170, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'bane', rank: 0, statistics: statistics::new(1500, 190, 125, 185, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'ember', rank: 0, statistics: statistics::new(1500, 165, 155, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'molten', rank: 2, statistics: statistics::new(1500, 180, 160, 160, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'solas', rank: 2, statistics: statistics::new(1500, 150, 170, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'solveig', rank: 2, statistics: statistics::new(1500, 185, 130, 185, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'janus', rank: 1, statistics: statistics::new(1500, 200, 110, 190, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'horus', rank: 1, statistics: statistics::new(1500, 165, 155, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'jabari', rank: 1, statistics: statistics::new(1500, 185, 135, 180, 10, 200), skillsCount: 3 });
-            world.write_model(BaseHero { heroName: 'khamsin', rank: 1, statistics: statistics::new(1500, 180, 140, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'sirocco', rank: 0, statistics: statistics::new(1500, 190, 120, 190, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'wellan', rank: 0, statistics: statistics::new(1500, 165, 160, 175, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'marella', rank: 0, statistics: statistics::new(1500, 150, 170, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'elandor', rank: 0, statistics: statistics::new(1500, 185, 130, 185, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'diana', rank: 0, statistics: statistics::new(1500, 185, 124, 191, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'elric', rank: 0, statistics: statistics::new(1500, 170, 160, 170, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'nereus', rank: 0, statistics: statistics::new(1500, 185, 135, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'rex', rank: 0, statistics: statistics::new(1500, 180, 160, 160, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'celeste', rank: 0, statistics: statistics::new(1500, 185, 130, 185, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'oakheart', rank: 0, statistics: statistics::new(1500, 170, 160, 170, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'sylvara', rank: 0, statistics: statistics::new(1500, 150, 170, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'bane', rank: 0, statistics: statistics::new(1500, 190, 125, 185, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'ember', rank: 0, statistics: statistics::new(1500, 165, 155, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'molten', rank: 2, statistics: statistics::new(1500, 180, 160, 160, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'solas', rank: 2, statistics: statistics::new(1500, 150, 170, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'solveig', rank: 2, statistics: statistics::new(1500, 185, 130, 185, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'janus', rank: 1, statistics: statistics::new(1500, 200, 110, 190, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'horus', rank: 1, statistics: statistics::new(1500, 165, 155, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'jabari', rank: 1, statistics: statistics::new(1500, 185, 135, 180, 10, 200), skillsCount: 3 });
+            world.write_model(@BaseHero { heroName: 'khamsin', rank: 1, statistics: statistics::new(1500, 180, 140, 180, 10, 200), skillsCount: 3 });
         }
         fn initHeroesByRankDict(ref world: WorldStorage) {
-            world.write_model(HeroesByRank { rank: 0, heroes: array!['sirocco', 'wellan', 'marella', 'elandor', 'diana', 'elric', 'nereus', 'rex', 'celeste', 'oakheart', 'sylvara', 'bane', 'ember'] });
-            world.write_model(HeroesByRank { rank: 1, heroes: array!['janus', 'horus', 'jabari', 'khamsin'] });
-            world.write_model(HeroesByRank { rank: 2, heroes: array!['molten', 'solas', 'solveig'] });
+            world.write_model(@HeroesByRank { rank: 0, heroes: array!['sirocco', 'wellan', 'marella', 'elandor', 'diana', 'elric', 'nereus', 'rex', 'celeste', 'oakheart', 'sylvara', 'bane', 'ember'] });
+            world.write_model(@HeroesByRank { rank: 1, heroes: array!['janus', 'horus', 'jabari', 'khamsin'] });
+            world.write_model(@HeroesByRank { rank: 2, heroes: array!['molten', 'solas', 'solveig'] });
         }
         fn initRunesTable(ref world: WorldStorage) {
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: false, value: 300 });
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: false, value: 30 });
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: false, value: 30 });
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: false, value: 20 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: false, value: 300 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: false, value: 30 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: false, value: 30 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: false, value: 20 });
 
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: true, value: 10 });
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: true, value: 10 });
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: true, value: 10 });
-            world.write_model(RuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: true, value: 10 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: true, value: 10 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: true, value: 10 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: true, value: 10 });
+            world.write_model(@RuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: true, value: 10 });
         }
         fn initBonusRunesTable(ref world: WorldStorage) {
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: false, value: 5 });
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: false, value: 5 });
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: false, value: 5 });
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: false, value: 3 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: false, value: 5 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: false, value: 5 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: false, value: 5 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: false, value: 3 });
 
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: true, value: 2 });
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: true, value: 2 });
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: true, value: 2 });
-            world.write_model(BonusRuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: true, value: 2 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Health, rarity: RuneRarity::Common, isPercent: true, value: 2 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Attack, rarity: RuneRarity::Common, isPercent: true, value: 2 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Defense, rarity: RuneRarity::Common, isPercent: true, value: 2 });
+            world.write_model(@BonusRuneStatistics { statistic: RuneStatistic::Speed, rarity: RuneRarity::Common, isPercent: true, value: 2 });
         }
     }
 

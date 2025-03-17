@@ -7,5 +7,5 @@ pub struct ArenaAccount {
     pub owner: ContractAddress,
     pub rank: u64,
     pub lastClaimedRewards: u64,
-    teamSize: u32,
+    pub teamSize: u32,
 }

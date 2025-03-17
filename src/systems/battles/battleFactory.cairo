@@ -1,12 +1,12 @@
 pub mod BattleFactory {
-
     use core::clone::Clone;
     use game::models::battle::entity::EntityTrait;
     use starknet::ContractAddress;
     use game::models::battle::Battle;
-    use game::models::storage::battles::{battleStorage::BattleStorage, arenaBattleStorage::ArenaBattleStorage, entityStorage::EntityStorage, healthOnTurnProcStorage::HealthOnTurnProcStorage};
+    use game::models::storage::battles::{battleStorage::BattleStorage, entityStorage::EntityStorage, healthOnTurnProcStorage::HealthOnTurnProcStorage};
     use game::models::{battle, battle::entity::{EntityImpl, Entity, healthOnTurnProc::HealthOnTurnProc}};
-    use dojo::world::{WorldStorageTrait, WorldStorage};
+    use dojo::world::WorldStorage;
+    use dojo::model::ModelStorage;
     use game::systems::skillFactory::SkillFactory::SkillFactoryImpl;
 
 
@@ -22,15 +22,15 @@ pub mod BattleFactory {
     pub impl BattleFactoryImpl of IBattleFactory {
         fn getBattle(ref world: WorldStorage, owner: ContractAddress, map: u16) -> Battle {
             let battleInfos: BattleStorage = world.read_model((owner, map));
-            return Self::newBattleFromBattleInfos(world, owner, map, battleInfos.entitiesCount, battleInfos.isWaitingForPlayerAction);
+            return Self::newBattleFromBattleInfos(ref world, owner, map, battleInfos.entitiesCount, battleInfos.isWaitingForPlayerAction);
         }
         fn newBattleFromBattleInfos(ref world: WorldStorage, owner: ContractAddress, map: u16, entitiesCount: u32, isWaitingForPlayerAction: bool) -> Battle {
-            let entitiesArray = Self::getEntities(world, owner, map, entitiesCount);
+            let entitiesArray = Self::getEntities(ref world, owner, map, entitiesCount);
             let entities = entitiesArray.span();
-            let (aliveEntities, deadEntities) = Self::getAlivesAndDeadEntities(world, owner, entities);
+            let (aliveEntities, deadEntities) = Self::getAlivesAndDeadEntities(ref world, owner, entities);
             let turnTimeline = aliveEntities.clone();
-            let (allies, enemies) = Self::getAlliesAndEnemies(world, owner, entities);
-            let healthOnTurnProcs = Self::getHealthOnTurnProcs(world, owner, map);
+            let (allies, enemies) = Self::getAlliesAndEnemies(ref world, owner, entities);
+            let healthOnTurnProcs = Self::getHealthOnTurnProcs(ref world, owner, map);
             let mut entitiesNames: Array<felt252> = Default::default();
             let mut i: u32 = 0;
             loop {
@@ -41,7 +41,7 @@ pub mod BattleFactory {
                 entitiesNames.append(entity.name);
                 i += 1;
             };
-            let skillSets = SkillFactoryImpl::getSkillSets(world, entitiesNames);
+            let skillSets = SkillFactoryImpl::getSkillSets(ref world, entitiesNames);
             let battle = battle::new(entitiesArray, aliveEntities, deadEntities, turnTimeline, allies, enemies, healthOnTurnProcs, skillSets, false, isWaitingForPlayerAction, owner);
             return battle;
 

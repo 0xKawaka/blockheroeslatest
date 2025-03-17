@@ -204,7 +204,7 @@ pub struct RankChange {
 }
 #[derive(Drop, Serde)]
 #[dojo::event]
-struct InitArena {
+pub struct InitArena {
     #[key]
     pub owner: ContractAddress,
     pub rank: u64,
@@ -212,14 +212,14 @@ struct InitArena {
 }
 #[derive(Drop, Serde)]
 #[dojo::event]
-struct TimestampEnergy {
+pub struct TimestampEnergy {
     #[key]
     pub owner: ContractAddress,
     pub timestamp: u64,
 }
 #[derive(Drop, Serde)]
 #[dojo::event]
-struct TimestampPvpEnergy {
+pub struct TimestampPvpEnergy {
     #[key]
     pub owner: ContractAddress,
     pub timestamp: u64,

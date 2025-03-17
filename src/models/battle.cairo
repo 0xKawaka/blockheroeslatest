@@ -5,33 +5,35 @@ use starknet::ContractAddress;
 use entity::Entity;
 use entity::healthOnTurnProc::{HealthOnTurnProc, HealthOnTurnProcImpl, DamageOrHealEnum};
 use entity::turnBar::{TurnBarTrait, TurnBarImpl};
-use entity::{EntityImpl, EntityTrait, AllyOrEnemy, cooldowns::CooldownsTrait, skill::Skill};
+use entity::{EntityImpl, EntityTrait, skill::Skill};
 
-use alexandria_data_structures::vec::{NullableVec, NullableVecImpl, VecTrait, Felt252VecImpl, Felt252Vec};
+use game::utils::vec::{VecTrait, NullableVec, Felt252Vec, newNullableVecFromArray, newFelt252VecFromArray};
+
 use game::utils::arrayHelper;
 use game::utils::spanHelper;
 
-use dojo::world::{WorldStorageTrait, WorldStorage};
-use game::models::events::{Event, StartTurn, IdAndValue, TurnBarEvent, EntityBuffEvent, BuffEvent, EndBattle};
+use dojo::world::WorldStorage;
+use dojo::event::EventStorage;
+use game::models::events::{StartTurn, IdAndValue, TurnBarEvent, EntityBuffEvent, BuffEvent, EndBattle};
 
 #[derive(Destruct)]
 pub struct Battle {
-    entities: NullableVec<Entity>,
-    aliveEntities: Felt252VecImpl<u32>,
-    deadEntities: Array<u32>,
-    turnTimeline: Felt252VecImpl<u32>,
-    alliesIndexes: Array<u32>,
-    enemiesIndexes: Array<u32>,
-    aliveAlliesIndexes: Felt252VecImpl<u32>,
-    aliveEnemiesIndexes: Felt252VecImpl<u32>,
-    healthOnTurnProcs: NullableVec<HealthOnTurnProc>,
-    skillSets : Array<Array<Skill>>,
-    // alliesTauntingIndexes: Felt252VecImpl<u32>,
-    // enemiesTauntingIndexes: Felt252VecImpl<u32>,
-    isBattleOver: bool,
-    isVictory: bool,
-    isWaitingForPlayerAction: bool,
-    owner: ContractAddress,
+    pub entities: NullableVec<Entity>,
+    pub aliveEntities: Felt252Vec<u32>,
+    pub deadEntities: Array<u32>,
+    pub turnTimeline: Felt252Vec<u32>,
+    pub alliesIndexes: Array<u32>,
+    pub enemiesIndexes: Array<u32>,
+    pub aliveAlliesIndexes: Felt252Vec<u32>,
+    pub aliveEnemiesIndexes: Felt252Vec<u32>,
+    pub healthOnTurnProcs: NullableVec<HealthOnTurnProc>,
+    pub skillSets : Array<Array<Skill>>,
+    // pub alliesTauntingIndexes: Felt252Vec<u32>,
+    // pub enemiesTauntingIndexes: Felt252Vec<u32>,
+    pub isBattleOver: bool,
+    pub isVictory: bool,
+    pub isWaitingForPlayerAction: bool,
+    pub owner: ContractAddress,
 }
 
 pub fn new(entities: Array<Entity>, aliveEntities: Array<u32>, deadEntities: Array<u32>, turnTimeline: Array<u32>, allies: Array<u32>, enemies: Array<u32>, healthOnTurnProcs: Array<HealthOnTurnProc>, skillSets : Array<Array<Skill>>, isBattleOver: bool, isWaitingForPlayerAction: bool, owner: ContractAddress) -> Battle {
@@ -40,18 +42,18 @@ pub fn new(entities: Array<Entity>, aliveEntities: Array<u32>, deadEntities: Arr
     let enemiesSpan = enemies.span();
     let aliveEntitiesSpan = aliveEntities.span();
     let mut battle = Battle {
-        entities: NullableVecImpl::newFromArray(entities),
-        aliveEntities: Felt252VecImpl::newFromArray(aliveEntities),
+        entities: newNullableVecFromArray(entities),
+        aliveEntities: newFelt252VecFromArray(aliveEntities),
         deadEntities: deadEntities,
-        turnTimeline: Felt252VecImpl::newFromArray(turnTimeline),
+        turnTimeline: newFelt252VecFromArray(turnTimeline),
         alliesIndexes: allies,
         enemiesIndexes: enemies,
         aliveAlliesIndexes: initAliveAlliesOrEnemiesIndexes(alliesSpan, aliveEntitiesSpan),
         aliveEnemiesIndexes: initAliveAlliesOrEnemiesIndexes(enemiesSpan, aliveEntitiesSpan),
-        healthOnTurnProcs: NullableVecImpl::newFromArray(healthOnTurnProcs),
+        healthOnTurnProcs: newNullableVecFromArray(healthOnTurnProcs),
         skillSets : skillSets,
-        // alliesTauntingIndexes: Felt252VecImpl::newFromArray(alliesTauntingIndexes),
-        // enemiesTauntingIndexes: Felt252VecImpl::newFromArray(enemiesTauntingIndexes),
+        // alliesTauntingIndexes: newFelt252VecFromArray(alliesTauntingIndexes),
+        // enemiesTauntingIndexes: newFelt252VecFromArray(enemiesTauntingIndexes),
         isBattleOver: isBattleOver,
         isVictory: false,
         isWaitingForPlayerAction: isWaitingForPlayerAction,
@@ -73,7 +75,7 @@ pub fn initAliveAlliesOrEnemiesIndexes(alliesOrEnemiesIndexes: Span<u32>, aliveE
         }
         i = i + 1;
     };
-    return Felt252VecImpl::newFromArray(aliveAlliesOrEnemiesIndexes);
+    return newFelt252VecFromArray(aliveAlliesOrEnemiesIndexes);
 }
 
 pub trait BattleTrait {
@@ -124,15 +126,15 @@ pub trait BattleTrait {
 pub impl BattleImpl of BattleTrait {
     fn battleLoop(ref self: Battle, ref world: WorldStorage) {       
         loop {
-            self.checkAndProcessBattleOver(world);
+            self.checkAndProcessBattleOver(ref world);
             if (self.isBattleOver || self.isWaitingForPlayerAction) {
                 break;
             }
             self.loopUntilNextTurn();
             let mut entity = self.getEntityHighestTurn();
-            self.processHealthOnTurnProcs(world, ref entity);
+            self.processHealthOnTurnProcs(ref world, ref entity);
             println!("playTurn");
-            entity.playTurn(world, ref self);
+            entity.playTurn(ref world, ref self);
         };
     }
     fn playTurn(ref self: Battle, ref world: WorldStorage, skillIndex: u8, targetIndex: u32) {
@@ -143,9 +145,9 @@ pub impl BattleImpl of BattleTrait {
         let mut entity = self.getEntityHighestTurn();
         println!("Entity player playing index :");
         println!("{}", entity.index);
-        entity.playTurnPlayer(world, skillIndex, targetIndex, ref self);
+        entity.playTurnPlayer(ref world, skillIndex, targetIndex, ref self);
         self.isWaitingForPlayerAction = false;
-        self.battleLoop(world);
+        self.battleLoop(ref world);
     }
     fn processHealthOnTurnProcs(ref self: Battle, ref world: WorldStorage, ref entity: Entity) {
         println!("processHealthOnTurnProcs of");
@@ -159,7 +161,7 @@ pub impl BattleImpl of BattleTrait {
                 break;
             }
             removed = false;
-            let mut onTurnProc = self.healthOnTurnProcs.getValue(i);
+            let mut onTurnProc = self.healthOnTurnProcs.at(i);
             if (onTurnProc.getEntityIndex() == entity.getIndex()) {
                 let damageOrHealVal = onTurnProc.proc(ref entity);
                 match onTurnProc.damageOrHeal {
@@ -214,7 +216,7 @@ pub impl BattleImpl of BattleTrait {
             if (i >= self.aliveEntities.len()) {
                 break;
             }
-            let entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let entity = self.entities.at(self.aliveEntities.at(i));
             if ((*entity.getTurnBar()).isFull()) {
                 isFull =  true;
                 break;
@@ -230,7 +232,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             entity.updateTurnBarSpeed();
             self.entities.set(entity.getIndex(), entity);
             i = i + 1;
@@ -242,7 +244,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             entity.incrementTurnbar();
             self.entities.set(entity.getIndex(), entity);
             i = i + 1;
@@ -260,20 +262,20 @@ pub impl BattleImpl of BattleTrait {
         
         loop {
             if idx2 == self.turnTimeline.len() {
-                sortedArray.append(self.turnTimeline.getValue(idx1));
+                sortedArray.append(self.turnTimeline.at(idx1));
                 if sortedIteration == 0 {
                     break;
                 }
-                self.turnTimeline = VecTrait::<Felt252Vec, u32>::newFromArray(sortedArray);
+                self.turnTimeline = newFelt252VecFromArray(sortedArray);
                 sortedArray = array![];
                 idx1 = 0;
                 idx2 = 1;
                 sortedIteration = 0;
             } else {
-                let entityIndex1 = self.turnTimeline.getValue(idx1);
-                let entityIndex2 = self.turnTimeline.getValue(idx2);
-                let entity1TurnBar = *self.entities.getValue(entityIndex1).getTurnBar().turnbar;
-                let entity2TurnBar = *self.entities.getValue(entityIndex2).getTurnBar().turnbar;
+                let entityIndex1 = self.turnTimeline.at(idx1);
+                let entityIndex2 = self.turnTimeline.at(idx2);
+                let entity1TurnBar = *self.entities.at(entityIndex1).getTurnBar().turnbar;
+                let entity2TurnBar = *self.entities.at(entityIndex2).getTurnBar().turnbar;
                 if entity1TurnBar > entity2TurnBar {
                     sortedArray.append(entityIndex1);
                     idx1 = idx2;
@@ -297,10 +299,10 @@ pub impl BattleImpl of BattleTrait {
                 }
             };
         };
-        self.turnTimeline = VecTrait::<Felt252Vec, u32>::newFromArray(sortedArray);
+        self.turnTimeline = newFelt252VecFromArray(sortedArray);
     }
     fn getEntityHighestTurn(ref self: Battle) -> Entity {
-        return self.entities.getValue(self.turnTimeline.getValue(0));
+        return self.entities.at(self.turnTimeline.at(0));
     }
     fn waitForPlayerAction(ref self: Battle) {
         println!("Waiting for player action");
@@ -315,7 +317,7 @@ pub impl BattleImpl of BattleTrait {
                 break;
             }
             died = false;
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             if (entity.isDead()) {
                 entity.die(ref self);
                 deadEntities.append(entity.index);
@@ -416,7 +418,7 @@ pub impl BattleImpl of BattleTrait {
             let allyIndex = *aliveAlliesIndexesArray[i];
             // println!("allyIndex");
             // println!("{}", allyIndex);
-            let mut entity = self.entities.getValue(allyIndex);
+            let mut entity = self.entities.at(allyIndex);
             allies.append(entity);
             i = i + 1;
         };
@@ -431,7 +433,7 @@ pub impl BattleImpl of BattleTrait {
                 break;
             }
             let enemyIndex = *aliveEnemiesIndexesArray[i];
-            let mut entity = self.entities.getValue(enemyIndex);
+            let mut entity = self.entities.at(enemyIndex);
             enemies.append(entity);
             i = i + 1;
         };
@@ -446,7 +448,7 @@ pub impl BattleImpl of BattleTrait {
                 break;
             }
             let allyIndex = *alliesIndexesSpan.pop_front().unwrap();
-            let mut entity = self.entities.getValue(allyIndex);
+            let mut entity = self.entities.at(allyIndex);
             allies.append(entity);
             i = i + 1;
         };
@@ -461,7 +463,7 @@ pub impl BattleImpl of BattleTrait {
                 break;
             }
             let enemyIndex = *enemiesIndexesSpan.pop_front().unwrap();
-            let mut entity =self.entities.getValue(enemyIndex);
+            let mut entity =self.entities.at(enemyIndex);
             enemies.append(entity);
             i = i + 1;
         };
@@ -477,7 +479,7 @@ pub impl BattleImpl of BattleTrait {
             }
             let allyIndex = *alliesIndexesSpan.pop_front().unwrap();
             if (allyIndex != entityIndex) {
-                let mut entity = self.entities.getValue(allyIndex);
+                let mut entity = self.entities.at(allyIndex);
                 if(!entity.isDead()) {
                     allies.append(entity);
                 }
@@ -496,7 +498,7 @@ pub impl BattleImpl of BattleTrait {
             }
             let enemyIndex = *enemiesIndexesSpan.pop_front().unwrap();
             if (enemyIndex != entityIndex) {
-                let mut entity = self.entities.getValue(enemyIndex);
+                let mut entity = self.entities.at(enemyIndex);
                 if(!entity.isDead()) {
                     enemies.append(entity);
                 }
@@ -512,7 +514,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             speeds.append(IdAndValue { entityId: entity.index, value: entity.getSpeed()});
             i = i + 1;
         };
@@ -525,7 +527,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             turnBars.append(TurnBarEvent { entityId: entity.index, value:*entity.getTurnBar().turnbar });
             i = i + 1;
         };
@@ -620,7 +622,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             let buffsArray = entity.getEventBuffsArray();
             let mut j: u32 = 0;
             loop {
@@ -652,7 +654,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.healthOnTurnProcs.len()) {
                 break;
             }
-            let onTurnProc = self.healthOnTurnProcs.getValue(i);
+            let onTurnProc = self.healthOnTurnProcs.at(i);
             match onTurnProc.getDamageOrHeal() {
                 DamageOrHealEnum::Damage => (),
                 DamageOrHealEnum::Heal => buffsHealthOnTurnProcs.append(BuffEvent { entityId: onTurnProc.entityIndex, name: 'regen', duration: onTurnProc.duration }),
@@ -668,7 +670,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
             let statusArray = entity.getEventStatusArray();
             let mut j: u32 = 0;
             loop {
@@ -700,7 +702,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.healthOnTurnProcs.len()) {
                 break;
             }
-            let onTurnProc = self.healthOnTurnProcs.getValue(i);
+            let onTurnProc = self.healthOnTurnProcs.at(i);
             match onTurnProc.getDamageOrHeal() {
                 DamageOrHealEnum::Damage => statusHealthOnTurnProcs.append(BuffEvent { entityId: onTurnProc.entityIndex, name: 'poison', duration: onTurnProc.duration }),
                 DamageOrHealEnum::Heal => (),
@@ -716,7 +718,7 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.healthOnTurnProcs.len()) {
                 break;
             }
-            let mut onTurnProc = self.healthOnTurnProcs.getValue(i);
+            let mut onTurnProc = self.healthOnTurnProcs.at(i);
             if (onTurnProc.getEntityIndex() == entityIndex) {
                 healthOnTurnProcs.append(onTurnProc);
             }
@@ -731,14 +733,14 @@ pub impl BattleImpl of BattleTrait {
             if (i == self.aliveEntities.len()) {
                 break;
             }
-            let mut entity = self.entities.getValue(self.aliveEntities.getValue(i));
-            healths.append(entity.getHealth().mag);
+            let mut entity = self.entities.at(self.aliveEntities.at(i));
+            healths.append(entity.getHealth().try_into().unwrap());
             i = i + 1;
         };
         return healths;
     }
     fn getEntityByIndex(ref self: Battle, entityIndex: u32) -> Entity {
-        return self.entities.getValue(entityIndex);
+        return self.entities.at(entityIndex);
     }
     fn getOwner(self: Battle) -> ContractAddress {
         return self.owner;
@@ -749,11 +751,11 @@ pub impl BattleImpl of BattleTrait {
             if (i >= self.turnTimeline.len()) {
                 break;
             }
-            let entityIndex = self.turnTimeline.getValue(i);
+            let entityIndex = self.turnTimeline.at(i);
             println!("Entity index : {}", entityIndex);
-            let entity = self.entities.getValue(entityIndex);
-            (*entity.getTurnBar().turnbar).print();
-            entity.getSpeed().print();
+            let entity = self.entities.at(entityIndex);
+            println!("Entity turnbar : {}", *entity.getTurnBar().turnbar);
+            println!("Entity speed : {}", entity.getSpeed());
             i = i + 1;
         };
     }
@@ -766,7 +768,7 @@ pub impl BattleImpl of BattleTrait {
             if (i >= self.entities.len()) {
                 break;
             }
-            let battleHero = self.entities.getValue(i);
+            let battleHero = self.entities.at(i);
             battleHero.print();
             i = i + 1;
         };
